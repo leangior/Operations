@@ -64,3 +64,6 @@ def get_lag_and_linear_fit(up_series : Union[pd.Series,pd.DataFrame], down_serie
     y = df['down_series']
     model = OLS(y, X).fit()
     return model
+
+if __name__ == "__main__":
+    import sys
