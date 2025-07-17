@@ -1,6 +1,9 @@
 library(jsonlite)
 library(httr)
 library(xts)
+library(fitdistrplus)
+library(lubridate)
+library(forecast)
 #----Config File Location
 
 Config.json=("log/Config.json")
@@ -68,7 +71,7 @@ GetDBRun<-function(StId,CalId,RunId,Start=Sys.Date()+1,End=Sys.Date()+15,Agg='no
 getDBEnsembleRun<-function(siteId=2,modelId=c(65,69,32,319,320,321),VarId=c(4,4,4,4,4,4)){
   i=1
   runs=xts()
-  for(id in modelId[2:length(modelsId)]){
+  for(id in modelId[2:length(modelId)]){
     v=GetDBRun(siteId,id,VarId[i])
     colnames(v)=c(paste0('model_',id))
     runs=cbind(runs,v)
