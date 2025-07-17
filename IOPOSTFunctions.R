@@ -92,6 +92,12 @@ get_forecasts_space<-function(xts_forecasts,probs_thresholds=c(0.01,0.99)){
     forecast_space=rbind(forecast_space,values)   
   }
   forecast_space=xts(order.by=index(xts_forecasts),forecast_space)
+  names=c()
+  for(i in seq(1,length(probs_thresholds))){
+    names[i]=c(paste0("p_",probs_thresholds[i]))
+  }
+  names[dim(forecast_space)[2]]=paste("main")
+  colnames(forecast_space)=names
   return(forecast_space)
 }
 
