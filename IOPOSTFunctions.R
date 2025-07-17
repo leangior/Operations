@@ -90,7 +90,7 @@ getMeanRegime=function(seriesId,refStart='1991-01-01',refEnd='2020-12-31'){
   return(regime)
 }
 
-#Extended déficit analysis (McMahon, 2007)
+#Extended deficit analysis (McMahon, 2007)
 
   #obtención de xts EDA para xts puntual (servers a5/a6)
 extendedDeficitAnalysis<-function(serieId,thresHold,start='2010-01-01',end=Sys.Date(),f=10^6,z0=0){
