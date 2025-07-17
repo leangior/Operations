@@ -148,3 +148,24 @@ getLagAndLinealFit<-function(upSerie,downSerie){
   model=summary(lm(tsFrame$downSerie~tsFrame$upSerie))
   return(model)
 }
+
+#Modelo Lag And Route para tránsito de señales (Desplazamiento rígido + efecto de almacenamiento)
+lagAndRoute<-function(upSerie,lag=0,k=0.01,n=1,warmUp=30){
+  route=upSerie
+  index(route)=index(route)+lag
+  route=LinearTransit(route,k,n)
+  return(route[warmUp:dim(route)[1]])
+}
+
+#Modelo Lag And Route para tránsito de señales con ajuste de sesgo por regresión lineal
+lagAndRouteBiasAdj<-function(upSerie,downSerie,lag=0,k=0.01,n=1,warmUp=30){
+  route=lagAndRoute(upSerie,lag,k,n,warmUp)
+  series=cbind(downSerie,route)
+  series=series[warmUp:dim(series)[1]]
+  colnames(series)=c('obs','sim')
+  model=summary(lm(series$obs~series$sim))
+  message(paste0("Utilizando ajuste de sesgo por regresión lineal R²=",model$r.squared))
+  series$sim=model$coef[1]+model$coef[2]*series$sim
+  return(series)
+}
+
