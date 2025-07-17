@@ -80,6 +80,25 @@ getDBEnsembleRun<-function(siteId=2,modelId=c(65,69,32,319,320,321),VarId=c(4,4,
   return(runs)
 }
 
+#Postprocesa xts de conjunto de previsiones a fin de obtener tendencia central y espacio probable
+get_forecasts_space<-function(xts_forecasts,probs_thresholds=c(0.01,0.99)){
+  forecast_space=c()
+  for(i in seq(1,dim(xts_forecasts)[1])){
+    q=as.numeric(quantile(xts_forecasts[i,],probs=probs_thresholds))
+    avg=mean(c(xts_forecasts[i,]))
+    median=median(c(xts_forecasts[i,]))
+    central=mean(c(median,avg))
+    values=c(q,central)
+    forecast_space=rbind(forecast_space,values)   
+  }
+  # for(i in seq(1,lenght(probs_thresholds))){
+  #   colnames(forecast_space)[i]=paste0("p_",probs_thresholds[i])
+  # }
+  # colnames(forecast_space)[dim(forecast_space)[2]]='main'
+  forecast_space=xts(order.by=index(xts_forecasts),forecast_space)
+  return(forecast_space)
+}
+
 #Analysis Functions
 
 #Obtiene la curva de régimen intra-anual para un xts de datos puntuales (servers a5/a6)
