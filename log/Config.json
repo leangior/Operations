@@ -1,0 +1,13 @@
+{
+    "database":{
+      "dbname": "",
+      "user": "",
+      "host": "",
+      "port": 
+    },
+    "api":{
+      "url": "http:",
+      "token": "",
+      "timeout": 
+    }
+  }
