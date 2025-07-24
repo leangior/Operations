@@ -101,7 +101,24 @@ get_forecasts_space<-function(xts_forecasts,probs_thresholds=c(0.01,0.99)){
   return(forecast_space)
 }
 
-#Analysis Functions
+#---Analysis Functions
+
+#Rutina para creación de función distribución sobre la base de n reservorios lineales con tiempo promedio de residencia igual a k. Integra por trapecio, a subpasos de cálculo de longitud dt.
+CreateGamma<-function(k=1,n=1,m=10*n*k,dt=0.01){
+  t=0
+  Q=c()
+  while(t<=m){
+    u=1/(k*gamma(n))*(t/k)^(n-1)*exp(-t/k)*1/2
+    for(j in seq(t+dt,t+1-dt,dt)){
+      u=u+1/(k*gamma(n))*(j/k)^(n-1)*exp(-j/k)
+    }
+    u=u+1/(k*gamma(n))*((t+1)/k)^(n-1)*exp(-(t+1)/k)*1/2
+    t=t+1
+    Q[t]=u
+  }
+  return(Q/sum(Q))
+}
+
 
 #Obtiene la curva de régimen intra-anual para un xts de datos puntuales (servers a5/a6)
 getMeanRegime=function(seriesId,refStart='1991-01-01',refEnd='2020-12-31'){
@@ -127,7 +144,7 @@ extendedDeficitAnalysis<-function(serieId,thresHold,start='2010-01-01',end=Sys.D
   return(xts(order.by=index(serie),z/f))
 }
 
-  #obtención de xts EDA a partir de xts custom
+#obtención de xts EDA a partir de xts custom
 extendedDeficitAnalysisbySerie<-function(serie,thresHold,f=10^6,z0=0){
   z=c()
   z[1]=z0
@@ -137,7 +154,7 @@ extendedDeficitAnalysisbySerie<-function(serie,thresHold,f=10^6,z0=0){
   return(xts(order.by=index(serie),z/f))
 }
 
-  #Obtención de Curva Almacenamiento-Descarga sobre la base de análisis de xts EDA
+#Obtención de Curva Almacenamiento-Descarga sobre la base de análisis de xts EDA
 getVolumenReleasebyDefecitiAnalysis<-function(serie,thresHolds,f=10^6,z0=0,k=1.68,p=.99){
   r=c()
   for(threshold in thresHolds){
@@ -163,6 +180,10 @@ getCrossCor<-function(upSerie,dSerie,maxLag=5,ini=1){
   return(r)
 }
 
+
+#--- Modelos de propagaciòn lineal
+
+#A. Estáticos
 #Obtención de modelo lineal predictivo a partir de anàlisis de correlación cruzada entre 2 xts (lag and lineal fit)
 getLagAndLinealFit<-function(upSerie,downSerie){
   lag=getCrossCor(upSerie,downSerie)
@@ -172,6 +193,48 @@ getLagAndLinealFit<-function(upSerie,downSerie){
   model=summary(lm(tsFrame$downSerie~tsFrame$upSerie))
   return(model)
 }
+
+#B. Dinámicos
+#Rutina para la generación una matriz de convolución. Requiere vector x de datos de hidrograma de entrada y el vector Disfun función de distribución
+GetPulsesMatrix<-function(x=data,DisFun=u){
+  m=length(DisFun) #ordenadas de función distribución
+  n=length(x) #ordenadas de hidrograma de entrada
+  Q=matrix(nrow=sum(n,m),ncol=m)
+  k=1
+  for(col in 1:m){
+    for(row in 1:sum(n,m)){
+      if(col>row){
+        Q[row,col]=0
+      }
+      else
+      {
+        if(row>=n+k){
+          Q[row,col]=0
+        }
+        else{
+          Q[row,col]=x[row-k+1]
+        }
+        
+      }
+    }
+    k=k+1
+  }
+  return(Q)
+}
+
+#Rutina de trànsito lineal utilizando kernel obtenido mediante gamma(k,n)
+LinearTransit<-function(ts,k,n,U){
+  if(missing(U)){
+    U=CreateGamma(k,n) #crea función de distrubución (tránsito por N reservorios lineales con tiempo promedio de residencia igual a K)
+  }
+  Response=list() #declara objeto respuesta (lista, general)está 
+  PulsesMatrix=GetPulsesMatrix(x=as.matrix(ts)[1:length(ts)],DisFun=U) #crea matriz de pulsos
+  Response$val=PulsesMatrix%*%U #realiza convolución de pulsos
+  Response=xts(x=Response$val[1:length(ts)],order.by=index(ts)) #transforma response a objeto ts
+  return(na.fill(Response,0))
+  # na.fill(return(window(Response,start=as.Date(strsplit(x = Interval,split="/")[[1]][1]),end=as.Date(strsplit(x = Interval,split="/")[[1]][2]))),0)
+}
+
 
 #Modelo Lag And Route para tránsito de señales (Desplazamiento rígido + efecto de almacenamiento)
 lagAndRoute<-function(upSerie,lag=0,k=0.01,n=1,warmUp=30){
